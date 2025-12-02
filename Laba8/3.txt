@@ -1,0 +1,13 @@
+ALTER TABLE students ADD COLUMN attendance TEXT[];
+
+UPDATE students SET attendance = 
+    CASE g_num
+        WHEN 'pmi20' THEN ARRAY['mon', 'wed', 'fri']::TEXT[]
+        WHEN 'pmi23' THEN ARRAY['tue', 'thu', 'sat']::TEXT[]
+        WHEN 'pmi24' THEN ARRAY['mon', 'tue', 'wed', 'thu', 'fri']::TEXT[]
+        ELSE ARRAY['mon']::TEXT[]
+    END
+WHERE attendance IS NULL;
+
+
+SELECT * FROM students;
