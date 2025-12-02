@@ -1,0 +1,43 @@
+CREATE FUNCTION print_even_attendance_by_groups()
+RETURNS TABLE (
+    group_name TEXT,
+    student_name TEXT,
+    even_attendance_days TEXT[]
+) AS $$
+DECLARE
+    rec RECORD;
+    even_days TEXT[];
+    day_index INT;
+BEGIN
+    FOR rec IN
+        SELECT 
+            s.g_num,
+            s.fio,
+            s.attendance
+        FROM students s
+        ORDER BY s.g_num, s.fio
+    LOOP
+        even_days := ARRAY[]::TEXT[];
+        
+        IF rec.attendance IS NOT NULL THEN
+            FOR day_index IN 1..array_length(rec.attendance, 1)
+            LOOP
+                IF day_index % 2 = 0 THEN
+                    even_days := array_append(even_days, rec.attendance[day_index]);
+                END IF;
+            END LOOP;
+        END IF;
+        
+        IF array_length(even_days, 1) > 0 THEN
+            group_name := rec.g_num;
+            student_name := rec.fio;
+            even_attendance_days := even_days;
+            RETURN NEXT;
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+SELECT * FROM print_even_attendance_by_groups();
