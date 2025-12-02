@@ -1,0 +1,4 @@
+SELECT * FROM students 
+where 'tue' = any(attendance)
+and 'fri' = any(attendance) 
+order by g_num, fio;
