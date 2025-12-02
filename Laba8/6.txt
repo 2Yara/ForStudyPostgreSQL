@@ -1,1 +1,17 @@
+drop function get_student_att_days(student_name varchar);
 
+CREATE FUNCTION get_student_att_days(student_name VARCHAR)
+RETURNS TABLE(day_code text) 
+AS $$
+
+BEGIN
+    RETURN QUERY
+    SELECT att.day FROM students s,
+        unnest(s.attendance) as att(day)
+    WHERE s.fio = student_name;
+END;
+
+$$ LANGUAGE plpgsql;
+
+
+select * from get_student_att_days('Popova Tuyara Stepanovna');
