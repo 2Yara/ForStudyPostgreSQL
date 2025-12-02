@@ -1,0 +1,6 @@
+update courses set name =
+case name 
+when 'biology' then 'history'
+when 'history' then 'foreign language'
+else 'math'
+end;
