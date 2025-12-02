@@ -1,1 +1,22 @@
-puk
+create or replace function course_info() 
+returns table (
+	course_name text,
+	course_hours int,
+	c_info text
+) as $$
+
+begin
+	return query
+	select courses.name, courses.hours,
+	case 
+		when courses.hours > 40 then 'Long course'
+		when courses.hours between 20 and 40 then 'Mid course'
+		when courses.hours < 20 then 'Short course'
+		else 'n/a'
+	end
+	from courses
+	order by courses.hours, courses.name;
+end;
+$$ language plpgsql;
+
+select * from course_info();
