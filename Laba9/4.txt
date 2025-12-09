@@ -1,0 +1,34 @@
+do $$
+declare
+    course_id text;
+    c_name varchar;
+    c_hours int;
+    
+    continue_loop bool := true;
+begin
+    while continue_loop loop
+        continue_loop := false;
+        
+        FOR course_id, c_name, c_hours IN 
+            select c_id, name, hours from courses 
+        loop
+            if c_hours < 100 then
+                update courses 
+                set hours = hours + 5 
+                where c_id = course_id;
+                
+                select hours into c_hours from courses 
+                where c_id = course_id;
+                
+                raise notice 'Курс "%": теперь % часов', 
+                    c_name, c_hours;
+                
+                continue_loop := TRUE;
+            else
+                raise notice 'Курс "%": уже достиг % часов (изменений не требуется)', 
+                    c_name, c_hours;
+            end if;
+        end loop;        
+    end loop;
+    
+end $$;
