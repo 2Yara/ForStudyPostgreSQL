@@ -1,0 +1,17 @@
+SELECT 
+    CASE 
+        WHEN year < 2022 THEN 'До 2022 года'
+        WHEN year BETWEEN 2022 AND 2023 THEN 'С 2022 по 2023'
+        WHEN year > 2023 THEN 'После 2023'
+        ELSE 'Не указан'
+    END AS stud_period,
+    COUNT(*) AS student_count
+FROM students
+GROUP BY 
+    CASE 
+        WHEN year < 2022 THEN 'До 2022 года'
+        WHEN year BETWEEN 2022 AND 2023 THEN 'С 2022 по 2023'
+        WHEN year > 2023 THEN 'После 2023'
+        ELSE 'Не указан'
+    END
+ORDER BY MIN(year);
