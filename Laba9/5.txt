@@ -1,0 +1,17 @@
+do $$
+declare
+    course_info RECORD;
+begin
+    FOR course_info IN 
+        SELECT 
+            c.name,
+            COALESCE(SUM(e.score), 0) AS total_difficulty
+        FROM courses c
+        LEFT JOIN exams e ON c.c_id = e.c_id
+        GROUP BY c.c_id, c.name
+        ORDER BY COALESCE(SUM(e.score), 0) DESC
+    LOOP
+        RAISE NOTICE 'Курс: "%", Общая сложность: %', 
+            course_info.name, course_info.total_difficulty;
+    END LOOP;
+END $$;
