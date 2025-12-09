@@ -32,3 +32,19 @@ begin
     end loop;
     
 end $$;
+
+
+
+чтобы вернуть все значения обратно: 
+UPDATE courses 
+SET hours = 
+    CASE c_id
+        WHEN '1' THEN 18  -- history
+        WHEN '2' THEN 18  -- foreign language
+        WHEN '3' THEN 42  -- math
+        WHEN '4' THEN 21  -- PE
+        WHEN '5' THEN 39  -- informatics
+    END;
+
+-- Проверяем результат
+SELECT * FROM courses ORDER BY c_id;
