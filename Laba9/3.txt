@@ -1,0 +1,55 @@
+DO $$
+DECLARE
+    exam_record RECORD;
+    
+    all_exams_cursor CURSOR FOR
+        SELECT 
+            s.fio AS student_name,
+            c.name,
+            e.score
+        FROM exams e
+        JOIN students s ON e.s_id = s.s_id
+        JOIN courses c ON e.c_id = c.c_id
+        ORDER BY s.fio, c.name;
+    
+
+    good_grade_count INTEGER := 0;
+    warning_grade_count INTEGER := 0;
+BEGIN
+    FOR exam_record IN 
+        SELECT s.fio, c.name, e.score
+        FROM exams e
+        JOIN students s ON e.s_id = s.s_id
+        JOIN courses c ON e.c_id = c.c_id
+        WHERE e.score > 4
+        ORDER BY e.score DESC, s.fio
+    LOOP
+        good_grade_count := good_grade_count + 1;
+        RAISE NOTICE '% - курс "%" (оценка: %)', 
+            exam_record.fio, exam_record.name, exam_record.score;
+    END LOOP;
+    
+    IF good_grade_count = 0 THEN
+        RAISE NOTICE 'Нет студентов с оценкой выше 4';
+    END IF;
+    
+    OPEN all_exams_cursor;
+    
+    LOOP
+        FETCH all_exams_cursor INTO exam_record;
+        EXIT WHEN NOT FOUND;
+        
+        IF exam_record.score < 4 THEN
+            warning_grade_count := warning_grade_count + 1;
+            RAISE NOTICE 'Студент % сдал курс % с низкой оценкой — %', 
+                exam_record.student_name, exam_record.name, exam_record.score;
+        END IF;
+    END LOOP;
+    
+    CLOSE all_exams_cursor;
+    
+    IF warning_grade_count = 0 THEN
+        RAISE NOTICE 'Нет студентов с оценкой ниже 4';
+    END IF;
+    
+END $$;
