@@ -1,0 +1,27 @@
+create or replace function check_student_status(stud_id int)
+returns text as $$
+declare
+    year_of_admission int;
+begin
+    select year into year_of_admission from students
+    where s_id = stud_id;
+    
+    if not found then
+        return 'Студент не найден';
+    end if;
+    
+    if year_of_admission is null then
+        return 'Год поступления не указан';
+    end if;
+    
+    if year_of_admission > 2022 then
+        return 'Новичок';
+    else
+        return 'Бывалый';
+    end if;
+    
+end;
+$$ language plpgsql;
+
+
+SELECT check_student_status('1');
