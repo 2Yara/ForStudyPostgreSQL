@@ -1,0 +1,65 @@
+create or replace function add_exam_score(
+    p_student_id text,
+    p_course_id text,
+    p_grade integer
+)
+returns text as $$
+declare
+    student_exists bool;
+    course_exists bool;
+    grade_valid bool;
+    exam_inserted bool := FALSE;
+    result_message text;
+begin
+    select exists(select 1 from students where s_id = p_student_id) 
+    into student_exists;
+    
+    if not student_exists then
+        return format('ОШИБКА: Студент с ID %s не существует.', p_student_id);
+    end if;
+    
+    select exists(select 1 from courses where c_id = p_course_id) 
+    into course_exists;
+    
+    if not course_exists then
+        return format('ОШИБКА: Курс с ID %s не существует.', p_course_id);
+    end if;
+    
+    grade_valid := p_grade between 1 and 5;
+    
+    if not grade_valid then
+        return format('ОШИБКА: Оценка %s недопустима. Допустимый диапазон: 1-5.', p_grade);
+    end if;
+    
+    begin
+        insert into exams (s_id, c_id, score)
+        values (p_student_id, p_course_id, p_grade);
+        
+        exam_inserted := TRUE;
+        result_message := format(
+            'Запись об экзамене добавлена. ' ||
+            'Студент ID: %s, Курс ID: %s, Оценка: %s',
+            p_student_id, p_course_id, p_grade);
+        
+        raise notice '%', result_message;
+        
+    exception
+        when unique_violation then
+            result_message := 'ОШИБКА: Такая запись уже существует.';
+        when check_violation then
+            result_message := 'ОШИБКА: Нарушение ограничений целостности данных.';
+        when foreign_key_violation then
+            result_message := 'ОШИБКА: Нарушение внешнего ключа.';
+        when others then
+            result_message := format('ОШИБКА: %s', SQLERRM);
+    end;
+    
+    return result_message;
+    
+end;
+$$ language plpgsql;
+
+
+select add_exam_score('2', '3', 4);
+
+select add_exam_score('9', '2', 4);
