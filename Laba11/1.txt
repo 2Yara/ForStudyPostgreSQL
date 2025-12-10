@@ -1,1 +1,26 @@
-puk
+create or replace function get_order_size_description(order_json JSON)
+returns text as $$
+declare
+    order_sum numeric;
+begin
+    order_sum := (order_json->>'total_price')::numeric;
+    
+    if order_sum is null then
+        return 'Не удалось определить сумму заказа';
+    end if;
+    
+    if order_sum > 3000 then
+        RETURN 'крупный заказ';
+    elsif order_sum >= 1000 then
+        return 'средний заказ';
+    else
+        return 'малый заказ';
+    end if;
+    
+end;
+$$ language plpgsql;
+
+
+SELECT * FROM get_order_size_description(
+    '{"id": "1", "client_id": "1", "total_price": 300}'::JSON
+);
