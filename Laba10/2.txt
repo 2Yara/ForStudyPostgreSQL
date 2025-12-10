@@ -1,0 +1,61 @@
+create or replace function multiply_admission_years(years_array INTEGER[])
+returns bigint as $$
+declare
+    res bigint := 1;
+    current_year int;
+    i int;
+    null_count int := 0;
+    zero_count int := 0;
+begin
+    if years_array is null or array_length(years_array, 1) is null then
+        raise notice 'Внимание: передан пустой массив или NULL';
+        return 0;
+    end if;
+    
+    raise notice 'Вычисляем произведение для массива: %', years_array;
+    
+    for i in 1..array_length(years_array, 1) loop
+        current_year := years_array[i];
+        
+        if current_year is null then
+            null_count := null_count + 1;
+            raise notice 'Пропускаем NULL значение на позиции %', i;
+            continue;
+        end if;
+        
+        if current_year = 0 then
+            zero_count := zero_count + 1;
+            raise notice 'Обнаружен 0 на позиции %', i;
+        end if;
+        
+        res := res * current_year;
+        
+        raise notice 'Позиция %: год %, текущий результат: %', 
+            i, current_year, res;
+    end loop;
+    
+    if zero_count > 0 then
+        raise notice'Обнаружено нулей: %. Результат умножения: 0', zero_count;
+        return 0;
+    end if;
+    
+    if null_count = array_length(years_array, 1) then
+        raise notice 'Все элементы массива - NULL';
+        return 0;
+    end if;
+    
+    raise notice 'Произведение вычислено: %', res;
+    return res;
+    
+exception
+    when numeric_value_out_of_range then
+        raise notice 'Ошибка: переполнение при умножении!';
+        return 0;
+    when others then
+        raise notice 'Ошибка: %', SQLERRM;
+        return 0;
+end;
+$$ language plpgsql;
+
+
+SELECT multiply_admission_years(ARRAY[2020, 2021, 2022]);
