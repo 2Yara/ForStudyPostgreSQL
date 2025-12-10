@@ -1,0 +1,28 @@
+drop function get_course_registration_counts();
+
+create or replace function get_course_registration_counts()
+returns table (
+    course_id text,
+    course_name text,
+    registered_students_count bigint
+) as $$
+begin
+    return query
+    select 
+        c.c_id as c_id,
+        c.name,
+        count(distinct e.s_id) as registered_students_count
+    from courses c
+    left join exams e on c.c_id = e.c_id
+    group by c.c_id, c.name
+    order by count(distinct e.s_id) desc, c.name;
+    
+    if not found then
+        raise notice 'Нет данных о регистрации студентов на курсы';
+    end if;
+    
+end;
+$$ language plpgsql;
+
+
+select * from get_course_registration_counts();
