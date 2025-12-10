@@ -1,0 +1,36 @@
+create or replace function get_students_above_average(threshold numeric default 12)
+returns table (
+    student_id text,
+    student_name text,
+    average_grade numeric(4,2),
+    total_courses bigint,
+    total_points bigint,
+    status text
+) as $$
+begin
+    return query
+    select
+        s.s_id, s.fio as student_name,
+        ROUND(avg(e.score)::numeric, 2) as average_grade,
+        count(e.c_id) as total_courses,
+        sum(e.score) as total_points,
+        case 
+            when avg(e.score) >= 4.5 then 'Отличник'
+            when avg(e.score) >= 4.0 then 'Хорошист'
+            when avg(e.score) >= 3.5 then 'Успевающий'
+            else 'Средний'
+        end as status
+    from students s
+    join exams e on s.s_id = e.s_id
+    group by s.s_id, s.fio
+    having avg(e.score) > threshold
+    order by avg(e.score) desc, s.fio;
+    
+    if not found then
+        raise notice 'Студентов со средним баллом выше % не найдено', threshold;
+    end if;
+end;
+$$ language plpgsql;
+
+
+SELECT * FROM get_students_above_average(3.5);
