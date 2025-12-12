@@ -1,0 +1,76 @@
+create or replace function print_order_items(order_data JSONB)
+returns text as $$
+declare
+    items JSONB;
+    item JSONB;
+    i int := 0;
+    item_count int;
+    item_name text;
+    item_qty int;
+    result text := '';
+begin
+    if not (order_data ? 'items') then
+        return 'Ошибка: в заказе нет товаров';
+    end if;
+    
+    items := order_data->'items';
+    item_count := jsonb_array_length(items);
+    
+    loop
+        i := i + 1;
+        exit when i > item_count;
+        
+        item := items->(i - 1);
+        
+        item_name := item->>'product_name';
+        item_qty := (item->>'quantity')::int;
+
+
+        if item_name is null then
+            item_name := 'Без названия';
+        end if;
+        if item_qty is null then
+            item_qty := 1;
+        end if;
+
+
+        if item_qty >= 3 then
+            result := result || format('Товар "%s" — крупная партия (кол-во: %s)', 
+                                      item_name, item_qty) || E'\n';
+        else
+            result := result || format('Товар "%s" — малая партия (кол-во: %s)', 
+                                      item_name, item_qty) || E'\n';
+        end if;
+    end loop;
+    
+    return result;
+    
+end;
+$$ language plpgsql;
+
+
+
+SELECT print_order_items(
+    '{
+        "items": [
+            {"product_name": "Книга", "quantity": 1},
+            {"product_name": "Тетрадь", "quantity": 3},
+            {"product_name": "Ручка", "quantity": 10}
+        ]
+    }'::JSONB
+);
+
+
+SELECT print_order_items(
+    '{
+        "items": [
+            {"price": 500, "quantity": 2, "product_name": "Книга"}, 
+            {"price": 50, "quantity": 1, "product_name": "Ручка"}
+        ], 
+        "customer": {
+            "name": "Иван Иванов", 
+            "email": "ivan@example.com"
+        }, 
+        "total_price": 1050
+    }'::JSONB
+);
