@@ -1,0 +1,68 @@
+do $$
+declare
+    order_cursor cursor for 
+        select id, order_data 
+        from orders1 
+        order by id;
+    
+    current_order record;
+    items_array JSONB;
+    item JSONB;
+    item_index int;
+    items_count int;
+    
+    product_name text;
+    current_price numeric;
+    new_price numeric;
+    iteration int;
+    
+    check_price numeric;
+begin
+    open order_cursor;
+    
+    loop
+        fetch order_cursor into current_order;
+        exit when not found;
+        
+        continue when not (current_order.order_data ? 'items');
+        
+        items_array := current_order.order_data->'items';
+        items_count := jsonb_array_length(items_array);
+
+
+        item_index := 0;
+        while item_index < items_count loop
+            item := items_array->item_index;
+            product_name := item->>'product_name';
+            current_price := (item->>'price')::numeric;
+            
+            check_price := current_price;
+            iteration := 0;
+            
+            raise notice 'Товар "%s": начальная цена %s', product_name, ROUND(current_price, 2);
+            
+            while check_price <= 1000 loop
+                iteration := iteration + 1;
+                check_price := check_price * 1.1;
+                
+                raise notice '  Шаг %: товар "%s" — новая цена %', iteration, product_name, ROUND(check_price, 2);
+            end loop;
+            
+            if iteration > 0 then
+                new_price := check_price;
+                item := jsonb_set(item, '{price}', to_jsonb(ROUND(new_price, 2)));
+                items_array := jsonb_set(items_array, array[item_index::text], item);
+            end if;
+            
+            item_index := item_index + 1;
+        end loop;
+
+
+        update orders1 
+        set order_data = jsonb_set(current_order.order_data, '{items}', items_array)
+        where id = current_order.id;
+        
+    end loop;
+    
+    close order_cursor;
+end $$;
