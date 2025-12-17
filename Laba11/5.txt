@@ -1,0 +1,20 @@
+do $$
+declare
+    order_item RECORD;
+    order_total numeric;
+    order_id_val int;
+begin
+    for order_item in 
+        select o.id,
+            sum(coalesce((item->>'price')::numeric, 0) * coalesce((item->>'quantity')::numeric, 0)) as total_amount
+        from orders1 o
+        cross join lateral jsonb_array_elements(
+            case 
+                when o.order_data ? 'items' then o.order_data->'items'
+                else '[]'::JSONB
+            end) as item
+        group by o.id order by total_amount desc
+    loop
+        raise notice 'Заказ #% — сумма: % рублей', order_item.id, coalesce(order_item.total_amount, 0);
+    end loop;
+end $$;
