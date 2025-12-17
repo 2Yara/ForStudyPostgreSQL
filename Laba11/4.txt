@@ -1,1 +1,92 @@
-puk
+create or replace function remove_zero_quantity_items(order_json JSONB)
+returns JSONB as $$
+declare
+    items_array JSONB;
+    filtered_items JSONB := '[]'::JSONB;
+    item JSONB;
+    item_index int := 0;
+    items_count int;
+    quantity_val int;
+    product_name text;
+    items_removed int := 0;
+    items_kept int := 0;
+begin
+    if not (order_json ? 'items') then
+        return order_json;
+    end if;
+    
+    items_array := order_json->'items';
+    items_count := jsonb_array_length(items_array);
+
+	
+    loop
+        exit when item_index >= items_count;
+        
+        item := items_array->item_index;
+        quantity_val := (item->>'quantity')::int;
+        product_name := item->>'product_name';
+        
+        if quantity_val = 0 then
+            raise notice 'Удаляем товар "%s": quantity = 0', product_name;
+            items_removed := items_removed + 1;
+        else
+            filtered_items := filtered_items || item;
+            items_kept := items_kept + 1;
+        end if;
+        
+        item_index := item_index + 1;
+    end loop;
+    
+    raise notice 'Обработка завершена. Удалено: %, Оставлено: %', items_removed, items_kept;
+    
+    return jsonb_set(order_json, '{items}', filtered_items);
+    
+exception
+when others then
+        raise notice 'Ошибка при обработке заказа: %', sqlerrm;
+        RETURN order_json;
+end;
+$$ language plpgsql;
+
+
+
+//добавляем примеры заказов с количеством = 0 для тестирования
+insert into orders1 (id, client_id, order_data) values
+(3, 3, '{
+    "items": [
+        {"price": 200, "quantity": 0, "product_name": "Удаляемый товар 1"},
+        {"price": 300, "quantity": 2, "product_name": "Нормальный товар"},
+        {"price": 150, "quantity": 0, "product_name": "Удаляемый товар 2"},
+        {"price": 400, "quantity": 1, "product_name": "Еще товар"}
+    ],
+    "customer": {
+        "name": "Тестовый Клиент", 
+        "email": "test@example.com"
+    }, 
+    "total_price": 1050
+}'),
+(4, 4, '{
+    "items": [
+        {"price": 100, "quantity": 0, "product_name": "Все товары удаляются"}
+    ],
+    "customer": {
+        "name": "Клиент с пустым заказом", 
+        "email": "empty@example.com"
+    }, 
+    "total_price": 0
+}'),
+(5, 5, '{
+    "items": [
+        {"price": 500, "quantity": 3, "product_name": "Товар 1"},
+        {"price": 700, "quantity": 2, "product_name": "Товар 2"}
+    ],
+    "customer": {
+        "name": "Клиент без удаляемых товаров", 
+        "email": "nozero@example.com"
+    }, 
+    "total_price": 2900
+}');
+
+
+
+update orders1 set order_data = remove_zero_quantity_items(order_data) where order_data is not null;
